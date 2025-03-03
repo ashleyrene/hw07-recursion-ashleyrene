@@ -12,11 +12,25 @@ char** read_grid_from_file(const char* filename, int* rows, int* cols) {
 
     fscanf(file, "%d %d", rows, cols);
 
-
-    char** grid; 
+    // Allocate memory for the grid
+    char** grid = (char**)malloc(*rows * sizeof(char*));
+    if (!grid) {
+        fprintf(stderr, "Memory allocation failed\n");
+        fclose(file);
+        return NULL;
+    }
     
-    // Allocate memory for the grid here with the correct dimensions
-
+    // Allocate memory for each row
+    for (int i = 0; i < *rows; i++) {
+        grid[i] = (char*)malloc(*cols * sizeof(char));
+        if (!grid[i]) {
+            fprintf(stderr, "Memory allocation failed\n");
+            for (int j = 0; j < i; j++) free(grid[j]);
+            free(grid);
+            fclose(file);
+            return NULL;
+        }
+    }
 
     for (int i = 0; i < *rows; i++) {
         for (int j = 0; j < *cols; j++) {
@@ -29,15 +43,24 @@ char** read_grid_from_file(const char* filename, int* rows, int* cols) {
 }
 
 void free_grid(char **grid, int rows) {
-    
-    // Free the memory allocated for the grid here
+    for (int i = 0; i < rows; i++) {
+        free(grid[i]);c
+    }
+    free(grid);
 }
-
 
 bool lexicographically_smallest_path_util(char **grid, int rows, int cols, int x, int y, char* path, int pos) {
 
     // First write your base case : If the destination is reached return an appriopriate value
-
+    if (grid[x][y] == END) {
+        path[pos] = '\0'; // Null-terminate the path string
+        printf("%s\n", path);
+        return true;
+    }
+    //iff out of bounds or hitting a wall, return false
+    if (x >= rows || y >= cols || grid[x][y] == WALL) {
+        return false;
+    }
 
     // Implement the recursive step here.
     
@@ -63,21 +86,49 @@ bool lexicographically_smallest_path_util(char **grid, int rows, int cols, int x
     Cancelling the path is equivalent to cancelling the last move you made, 
     or cancelling the last 2 moves, or 3... etc, as many as you need. This is called backtracking.
     */
-   
+    //moving east
+    if (y + 1 < cols && grid[x][y + 1] != WALL) {
+        path[pos] = EAST;
+        if (lexicographically_smallest_path_util(grid, rows, cols, x, y + 1, path, pos + 1)) {
+            return true;
+        }
+    }
+    //moving south
+    if (x + 1 < rows && grid[x + 1][y] != WALL) {
+        path[pos] = SOUTH;
+        if (lexicographically_smallest_path_util(grid, rows, cols, x + 1, y, path, pos + 1)) {
+            return true;
+        }
+    }
 
     // If no path is valid, return appropriate value (think about what would be 
     // useful for`lexicographically_smallest_path` to know when no path is found)
-
+    return false;
 }
-
-
 
 void lexicographically_smallest_path(char **grid, int rows, int cols) {
     
     // Initialize an array of characters of size 100 to store the path
+    char path[100];
     // Intialize a position tracker to append characters to the path correctly
+    int start_x = -1, start_y = -1;
+    bool end_found = false;
 
     // Make sure the START and the END squares are in the grid. If they are not print NA and return
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            if (grid[i][j] == START) {
+                start_x = i;
+                start_y = j;
+            } else if (grid[i][j] == END) {
+                end_found = true;
+            }
+        }
+    }
+    if (start_x == -1 || start_y == -1 || !end_found) {
+        printf("-1\n");
+        return;
+    }
 
     // Call the utility function `lexicographically_smallest_path_util` with the correct parameters 
     // You can either look for the START square or hardcode it since we always start from the top left corner
@@ -86,4 +137,7 @@ void lexicographically_smallest_path(char **grid, int rows, int cols) {
     // If no path is found, print -1
     // Reminder for printing : To use printf("%s", ...) to print an array of characters in C, 
     // you need to add a null character at the end of the array to make it a string
+    if (!lexicographically_smallest_path_util(grid, rows, cols, start_x, start_y, path, 0)) {
+        printf("-1\n"); // Print -1 if no valid path is found
+    }
 }
